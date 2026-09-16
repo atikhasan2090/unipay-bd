@@ -1,0 +1,83 @@
+Package Name Suggestions
+
+A few options, with reasoning:
+
+Name	Why it works
+laravel-bd-pay	Short, clear, SEO-friendly on Packagist search ("bd pay", "bangladesh payment")
+unipay-bd	"Uni" signals unified gateway, catchy, brandable
+bkash-nagad	Very literal — highest chance of showing up in Google/Packagist search directly
+laravel-mfs (Mobile Financial Service)	Uses the official regulatory term (Bangladesh Bank calls these "MFS"), sounds professional/official
+paddle-bd or gatewaykit	More generic/brandable if you plan to expand beyond BD later
+
+My top pick: unipay-bd — package name would be yourvendor/unipay-bd. It's brandable, memorable, easy to type, and clearly communicates "unified payment, Bangladesh." Good balance between searchability and having room to grow into a recognizable brand/logo later.
+
+If discoverability on Packagist search matters most to you, go with bkash-nagad-laravel instead — people literally search those exact words.
+
+Implementation Plan
+Phase 1: Research & Setup (Week 1)
+Get bKash sandbox merchant credentials (via bKash PGW developer portal)
+Get Nagad sandbox credentials (merchant onboarding via Nagad)
+Read both official API docs fully, note differences:
+bKash: token-based REST, refresh token flow
+Nagad: RSA public/private key encryption, checksum signing
+Set up GitHub repo + Composer package skeleton (composer.json, PSR-4 autoload)
+Phase 2: Core Architecture (Week 1–2)
+
+Design a driver-based pattern, similar to Laravel's Filesystem/Cache drivers:
+
+src/
+├── PaymentManager.php          (main entry, resolves driver)
+├── Contracts/
+│   └── GatewayInterface.php    (create, execute, verify, refund methods)
+├── Gateways/
+│   ├── BkashGateway.php
+│   └── NagadGateway.php
+├── DTOs/
+│   ├── PaymentRequest.php
+│   └── PaymentResponse.php     (normalized response shape)
+├── Facades/
+│   └── Payment.php
+├── Http/Controllers/
+│   └── CallbackController.php  (webhook handler)
+├── Models/
+│   └── Transaction.php
+└── config/
+    └── unipay.php
+
+Key design decision: define a normalized response object (PaymentResponse) so regardless of gateway, your app always gets the same shape back (status, transactionId, amount, rawResponse).
+
+Phase 3: Build bKash Driver (Week 2)
+Implement token auth + refresh
+createPayment(), executePayment(), queryPayment(), refund()
+Map bKash's raw JSON response → your normalized PaymentResponse
+Write sandbox tests
+Phase 4: Build Nagad Driver (Week 2–3)
+Implement RSA encryption/decryption + checksum signing
+Same method signatures as bKash driver (interface enforces this)
+Map Nagad's response → normalized PaymentResponse
+Write sandbox tests
+Phase 5: Webhook/Callback System (Week 3)
+Auto-register callback routes via service provider
+Verify callback authenticity for each gateway
+Fire Laravel events (PaymentSucceeded, PaymentFailed) so users can hook into them in their own app
+Phase 6: Transaction Logging (Week 3)
+Optional migration + Transaction model
+Config flag to enable/disable auto-logging
+Store raw gateway response as JSON for debugging
+Phase 7: Developer Experience Polish (Week 4)
+php artisan unipay:install command (publishes config + migration)
+Clear .env variable names (BKASH_APP_KEY, NAGAD_MERCHANT_ID, etc.)
+Meaningful exceptions (InvalidGatewayException, PaymentVerificationFailedException)
+Write PHPUnit/Pest tests with mocked HTTP responses
+Phase 8: Documentation (Week 4)
+README with: installation, quick start, full method list, example controller
+A examples/ folder with a working demo checkout flow
+Badges: Packagist version, downloads, license, tests passing
+Phase 9: Publish & Launch (Week 4–5)
+Tag v1.0.0, submit to Packagist, set up GitHub webhook for auto-update
+Post on: Facebook Laravel Bangladesh groups, dev.to, Reddit r/laravel, local dev Discord/Slack communities
+Ask 2–3 people to actually integrate it into a test project and give feedback before wide launch
+Phase 10: Post-Launch (Ongoing)
+Respond to GitHub issues fast (this builds trust in early days)
+Add Rocket/Upay as additional drivers once core is stable
+Consider a unipay-bd-ui companion package later (Blade/Livewire checkout components) as v2

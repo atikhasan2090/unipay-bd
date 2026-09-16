@@ -1,0 +1,62 @@
+{
+    "name": "unipay/unipay-bd",
+    "description": "Unified Bangladesh Payment Gateway Package for Laravel (bKash & Nagad)",
+    "type": "library",
+    "keywords": [
+        "laravel",
+        "payment",
+        "gateway",
+        "bangladesh",
+        "bkash",
+        "nagad",
+        "mfs",
+        "unipay"
+    ],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "UniPay Team",
+            "email": "support@unipay.bd"
+        }
+    ],
+    "require": {
+        "php": "^8.1",
+        "illuminate/support": "^10.0 || ^11.0",
+        "illuminate/contracts": "^10.0 || ^11.0",
+        "guzzlehttp/guzzle": "^7.5",
+        "ext-json": "*",
+        "ext-openssl": "*"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^8.0 || ^9.0",
+        "phpunit/phpunit": "^10.0 || ^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Unipay\\BD\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Unipay\\BD\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Unipay\\BD\\UnipayServiceProvider"
+            ],
+            "aliases": {
+                "Payment": "Unipay\\BD\\Facades\\Payment"
+            }
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
