@@ -1,6 +1,6 @@
 {
     "name": "unipay/unipay-bd",
-    "description": "Unified Bangladesh Payment Gateway Package for Laravel (bKash & Nagad)",
+    "description": "Unified Bangladesh Payment Gateway Package for Laravel (bKash, Nagad, Rocket, Upay, CellFin, SSLCommerz & Shurjopay)",
     "type": "library",
     "keywords": [
         "laravel",
@@ -9,6 +9,11 @@
         "bangladesh",
         "bkash",
         "nagad",
+        "rocket",
+        "upay",
+        "cellfin",
+        "sslcommerz",
+        "shurjopay",
         "mfs",
         "unipay"
     ],
