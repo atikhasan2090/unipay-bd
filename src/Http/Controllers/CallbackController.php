@@ -13,13 +13,20 @@ class CallbackController extends Controller
 {
     public function handle(Request $request, string $gateway)
     {
-        $paymentId = $request->input('paymentID') ?? $request->input('paymentRefId');
-        $status = $request->input('status');
+        $paymentId = $request->input('paymentID')
+            ?? $request->input('paymentRefId')
+            ?? $request->input('payment_id')
+            ?? $request->input('val_id')
+            ?? $request->input('order_id')
+            ?? $request->input('cellfin_ref_id')
+            ?? $request->input('trx_id');
+
+        $status = strtolower($request->input('status') ?? $request->input('tran_status') ?? '');
 
         if ($gateway === 'bkash') {
             if ($status === 'cancel' || $status === 'failure') {
                 $response = Payment::driver('bkash')->queryPayment($paymentId ?? '');
-                $transaction = Transaction::where('payment_id', $paymentId)->first();
+                $transaction = $this->findTransaction($response->paymentId, $response->invoiceId);
                 event(new PaymentFailed($response, $transaction));
 
                 return response()->json([
@@ -29,25 +36,15 @@ class CallbackController extends Controller
                 ]);
             }
 
-            // Execute bKash Payment
             $response = Payment::driver('bkash')->executePayment($paymentId ?? '');
-        } elseif ($gateway === 'nagad') {
-            $paymentRefId = $request->input('payment_ref_id') ?? $paymentId;
-            $response = Payment::driver('nagad')->queryPayment($paymentRefId ?? '');
+        } elseif ($gateway === 'sslcommerz') {
+            $valId = $request->input('val_id') ?? $paymentId;
+            $response = Payment::driver('sslcommerz')->queryPayment($valId ?? '');
         } else {
             $response = Payment::driver($gateway)->queryPayment($paymentId ?? '');
         }
 
-        $transaction = null;
-        if (config('unipay.logging.enabled', true)) {
-            try {
-                $transaction = Transaction::where('payment_id', $response->paymentId)
-                    ->orWhere('invoice_id', $response->invoiceId)
-                    ->first();
-            } catch (\Throwable $e) {
-                // Ignore DB error if DB driver is not configured
-            }
-        }
+        $transaction = $this->findTransaction($response->paymentId, $response->invoiceId);
 
         if ($response->isSuccessful()) {
             event(new PaymentSucceeded($response, $transaction));
@@ -66,5 +63,20 @@ class CallbackController extends Controller
             'message' => 'Payment verification failed.',
             'data' => $response->toArray(),
         ], 400);
+    }
+
+    private function findTransaction(?string $paymentId, ?string $invoiceId): ?Transaction
+    {
+        if (!config('unipay.logging.enabled', true)) {
+            return null;
+        }
+
+        try {
+            return Transaction::where('payment_id', $paymentId)
+                ->orWhere('invoice_id', $invoiceId)
+                ->first();
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 }

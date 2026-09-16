@@ -6,7 +6,12 @@ use Illuminate\Support\Manager;
 use Unipay\BD\Contracts\GatewayInterface;
 use Unipay\BD\Exceptions\InvalidGatewayException;
 use Unipay\BD\Gateways\BkashGateway;
+use Unipay\BD\Gateways\CellfinGateway;
 use Unipay\BD\Gateways\NagadGateway;
+use Unipay\BD\Gateways\RocketGateway;
+use Unipay\BD\Gateways\ShurjopayGateway;
+use Unipay\BD\Gateways\SslcommerzGateway;
+use Unipay\BD\Gateways\UpayGateway;
 
 class PaymentManager extends Manager
 {
@@ -25,6 +30,36 @@ class PaymentManager extends Manager
     {
         $config = $this->config->get('unipay.gateways.nagad', []);
         return new NagadGateway($config);
+    }
+
+    protected function createRocketDriver(): GatewayInterface
+    {
+        $config = $this->config->get('unipay.gateways.rocket', []);
+        return new RocketGateway($config);
+    }
+
+    protected function createUpayDriver(): GatewayInterface
+    {
+        $config = $this->config->get('unipay.gateways.upay', []);
+        return new UpayGateway($config);
+    }
+
+    protected function createCellfinDriver(): GatewayInterface
+    {
+        $config = $this->config->get('unipay.gateways.cellfin', []);
+        return new CellfinGateway($config);
+    }
+
+    protected function createSslcommerzDriver(): GatewayInterface
+    {
+        $config = $this->config->get('unipay.gateways.sslcommerz', []);
+        return new SslcommerzGateway($config);
+    }
+
+    protected function createShurjopayDriver(): GatewayInterface
+    {
+        $config = $this->config->get('unipay.gateways.shurjopay', []);
+        return new ShurjopayGateway($config);
     }
 
     /**

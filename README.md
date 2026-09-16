@@ -1,18 +1,30 @@
-# UniPay BD (`unipay-bd`)
+# UniPay BD (`unipay/unipay-bd`)
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/unipay/unipay-bd.svg?style=flat-square)](https://packagist.org/packages/unipay/unipay-bd)
 [![Total Downloads](https://img.shields.io/packagist/dt/unipay/unipay-bd.svg?style=flat-square)](https://packagist.org/packages/unipay/unipay-bd)
 [![License](https://img.shields.io/packagist/l/unipay/unipay-bd.svg?style=flat-square)](LICENSE)
 
-UniPay BD is a unified, driver-based Laravel payment package for Bangladeshi mobile financial services (MFS) and payment gateways, featuring first-class support for **bKash Tokenized Checkout** and **Nagad PGW (RSA Signed)**.
+UniPay BD is a unified, driver-based Laravel payment package for Bangladeshi mobile financial services (MFS) and payment gateways, with full driver support for **bKash**, **Nagad**, **Rocket**, **Upay**, **CellFin**, **SSLCommerz**, and **Shurjopay**.
+
+---
+
+## Supported Gateways & Drivers
+
+| Gateway | Driver Name | MFS / Provider | Type | Protocol / Tech |
+| :--- | :--- | :--- | :--- | :--- |
+| **bKash** | `bkash` | bKash PGW | Mobile Banking | Tokenized REST API v1.2 |
+| **Nagad** | `nagad` | Nagad | Mobile Banking | RSA OpenSSL Encryption & Signature |
+| **Rocket** | `rocket` | Dutch-Bangla Bank (DBBL) | Mobile Banking | Merchant API v1 |
+| **Upay** | `upay` | UCB Fintech | Mobile Banking | Bearer Token REST API |
+| **CellFin** | `cellfin` | Islami Bank (IBBL) | Mobile Banking | Reference ID Checkout API |
+| **SSLCommerz**| `sslcommerz`| SSL Wireless | Card & Gateway Aggregator| GWProcess v4 API |
+| **Shurjopay** | `shurjopay` | ShurjoMukhi | Card & Gateway Aggregator| Shurjopay API v2 |
 
 ---
 
 ## Features
 
-- 🚀 **Unified Driver Architecture**: Seamlessly switch between payment gateways using Laravel's Manager pattern (`Payment::driver('bkash')` / `Payment::driver('nagad')`).
-- 🔐 **First-Class bKash PGW Support**: Token grant caching, create payment, execute payment, status query, and instant refund.
-- 🛡️ **Complete Nagad RSA PGW Support**: Built-in OpenSSL RSA key encryption/decryption, SHA256 signature generation, initialization, completion, and GET verification.
+- 🚀 **Unified Driver Architecture**: Seamlessly switch between any supported Bangladeshi payment gateway (`Payment::driver('bkash')`, `Payment::driver('rocket')`, `Payment::driver('upay')`, etc.).
 - 📦 **Normalized Response DTOs**: Consistent data structures (`PaymentResponse`) across all gateways—never write gateway-specific response parser logic again!
 - ⚡ **Auto Webhook & Callback Engine**: Uniform route handler (`/unipay/callback/{gateway}`) that executes payment verification and fires native Laravel events (`PaymentSucceeded`, `PaymentFailed`, `PaymentRefunded`).
 - 📊 **Transaction Logging**: Automatic logging of payment requests, status changes, and raw gateway JSON payloads to your database.
@@ -28,7 +40,7 @@ Install the package via Composer:
 composer require unipay/unipay-bd
 ```
 
-Run the installer command to publish the configuration and database migrations:
+Run the installer command to publish configuration and database migrations:
 
 ```bash
 php artisan unipay:install
@@ -46,24 +58,54 @@ Add your gateway credentials to your `.env` file:
 UNIPAY_DEFAULT_DRIVER=bkash
 UNIPAY_LOGGING_ENABLED=true
 
-# bKash PGW Credentials
+# bKash PGW
 BKASH_SANDBOX=true
 BKASH_APP_KEY=your_bkash_app_key
 BKASH_APP_SECRET=your_bkash_app_secret
 BKASH_USERNAME=your_bkash_username
 BKASH_PASSWORD=your_bkash_password
 
-# Nagad PGW Credentials
+# Nagad PGW
 NAGAD_SANDBOX=true
 NAGAD_MERCHANT_ID=68625001
 NAGAD_MERCHANT_NUMBER=01700000000
 NAGAD_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----"
 NAGAD_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
+
+# Rocket DBBL
+ROCKET_SANDBOX=true
+ROCKET_MERCHANT_ID=your_rocket_merchant_id
+ROCKET_TERMINAL_ID=your_rocket_terminal_id
+ROCKET_PASSWORD=your_rocket_password
+
+# Upay (UCB)
+UPAY_SANDBOX=true
+UPAY_MERCHANT_ID=your_upay_merchant_id
+UPAY_MERCHANT_KEY=your_upay_merchant_key
+UPAY_MERCHANT_CODE=your_upay_merchant_code
+UPAY_PASSWORD=your_upay_password
+
+# CellFin (IBBL)
+CELLFIN_SANDBOX=true
+CELLFIN_MERCHANT_ID=your_cellfin_merchant_id
+CELLFIN_STORE_ID=your_cellfin_store_id
+CELLFIN_SECRET_KEY=your_cellfin_secret_key
+
+# SSLCommerz
+SSLCOMMERZ_SANDBOX=true
+SSLCOMMERZ_STORE_ID=your_store_id
+SSLCOMMERZ_STORE_PASSWORD=your_store_password
+
+# Shurjopay
+SHURJOPAY_SANDBOX=true
+SHURJOPAY_USERNAME=sp_sandbox
+SHURJOPAY_PASSWORD=pyRcsawValidated
+SHURJOPAY_PREFIX=NOK
 ```
 
 ---
 
-## Basic Usage
+## Usage Examples
 
 ### 1. Initiating a Payment
 
@@ -73,8 +115,10 @@ use Unipay\BD\DTOs\PaymentRequest;
 
 class CheckoutController extends Controller
 {
-    public function checkout()
+    public function checkout(Request $request)
     {
+        $gateway = $request->input('gateway', 'bkash'); // 'bkash', 'nagad', 'rocket', 'upay', 'cellfin', 'sslcommerz', 'shurjopay'
+
         $paymentRequest = new PaymentRequest(
             amount: 1500.00,
             invoiceId: 'INV-10001',
@@ -82,8 +126,7 @@ class CheckoutController extends Controller
             callbackUrl: route('checkout.callback')
         );
 
-        // Uses default driver or specify driver explicitly: Payment::driver('nagad')
-        $response = Payment::createPayment($paymentRequest);
+        $response = Payment::driver($gateway)->createPayment($paymentRequest);
 
         if ($response->isSuccessful() || $response->isPending()) {
             return redirect()->away($response->redirectUrl);
@@ -94,32 +137,9 @@ class CheckoutController extends Controller
 }
 ```
 
-### 2. Handling Payment Callbacks & Events
-
-UniPay automatically handles callback redirects and webhooks at `/unipay/callback/{gateway}`. 
-
-Listen for UniPay events in your application:
+### 2. Event Listeners
 
 ```php
-// App\Providers\EventServiceProvider.php
-use Unipay\BD\Events\PaymentSucceeded;
-use Unipay\BD\Events\PaymentFailed;
-
-protected $listen = [
-    PaymentSucceeded::class => [
-        \App\Listeners\MarkOrderAsPaid::class,
-    ],
-    PaymentFailed::class => [
-        \App\Listeners\HandleFailedPayment::class,
-    ],
-];
-```
-
-Inside your listener:
-
-```php
-namespace App\Listeners;
-
 use Unipay\BD\Events\PaymentSucceeded;
 
 class MarkOrderAsPaid
@@ -131,29 +151,10 @@ class MarkOrderAsPaid
         $invoiceId = $response->invoiceId;
         $trxId = $response->transactionId;
         $amount = $response->amount;
+        $gateway = $response->gatewayName; // 'bkash', 'rocket', etc.
 
-        // Update your order in database
+        // Mark order as paid in database
     }
-}
-```
-
-### 3. Refunding a Transaction
-
-```php
-use Unipay\BD\Facades\Payment;
-use Unipay\BD\DTOs\RefundRequest;
-
-$refundReq = new RefundRequest(
-    paymentId: 'PAY12345678',
-    transactionId: 'TRX98765432',
-    amount: 500.00,
-    reason: 'Defective product return'
-);
-
-$response = Payment::driver('bkash')->refund($refundReq);
-
-if ($response->isSuccessful()) {
-    // Refund complete
 }
 ```
 
@@ -161,7 +162,7 @@ if ($response->isSuccessful()) {
 
 ## Testing
 
-Run the Pest test suite:
+Run the PHPUnit test suite:
 
 ```bash
 vendor/bin/phpunit
