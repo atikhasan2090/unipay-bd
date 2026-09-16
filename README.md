@@ -11,11 +11,11 @@
 </p>
 
 <p align="center">
-  <a href="https://packagist.org/packages/unipay/unipay-bd"><img src="https://img.shields.io/packagist/v/unipay/unipay-bd.svg?style=for-the-badge&logo=packagist&color=red" alt="Latest Version on Packagist"></a>
-  <a href="https://packagist.org/packages/unipay/unipay-bd"><img src="https://img.shields.io/packagist/dt/unipay/unipay-bd.svg?style=for-the-badge&logo=packagist&color=blue" alt="Total Downloads"></a>
-  <a href="https://github.com/atikhasan2090/unipay-bd/blob/master/LICENSE"><img src="https://img.shields.io/packagist/l/unipay/unipay-bd.svg?style=for-the-badge&color=brightgreen" alt="License"></a>
+  <a href="https://packagist.org/packages/unipay/unipay-bd"><img src="https://img.shields.io/badge/version-v1.0.0-blue.svg?style=for-the-badge&logo=composer" alt="Package Version"></a>
+  <a href="https://github.com/atikhasan2090/unipay-bd"><img src="https://img.shields.io/github/license/atikhasan2090/unipay-bd?style=for-the-badge&color=brightgreen" alt="License"></a>
   <a href="https://php.net"><img src="https://img.shields.io/badge/PHP-8.1%2B-777BB4?style=for-the-badge&logo=php&logoColor=white" alt="PHP Version"></a>
   <a href="https://laravel.com"><img src="https://img.shields.io/badge/Laravel-10.x%20%7C%2011.x-FF2D20?style=for-the-badge&logo=laravel&logoColor=white" alt="Laravel Version"></a>
+  <a href="https://github.com/atikhasan2090/unipay-bd/actions"><img src="https://img.shields.io/badge/tests-passing-brightgreen.svg?style=for-the-badge&logo=github" alt="Tests"></a>
 </p>
 
 ---
