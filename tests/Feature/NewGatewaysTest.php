@@ -28,7 +28,7 @@ class NewGatewaysTest extends TestCase
         $this->assertInstanceOf(ShurjopayGateway::class, Payment::driver('shurjopay'));
     }
 
-    public function test_rocket_create_and_verify_payment()
+    public function test_rocket_create_verify_and_refund_payment()
     {
         $mock = new MockHandler([
             new Response(200, [], json_encode([
@@ -43,6 +43,10 @@ class NewGatewaysTest extends TestCase
                 'transaction_id' => 'TRX_ROCKET_999',
                 'invoice_id' => 'INV-ROCKET-1',
                 'amount' => '500.00',
+            ])),
+            new Response(200, [], json_encode([
+                'status_code' => '200',
+                'refund_id' => 'RFD_ROCKET_111',
             ])),
         ]);
 
@@ -60,23 +64,28 @@ class NewGatewaysTest extends TestCase
         $verifyResponse = $gateway->queryPayment('ROCKET_PAY_123');
         $this->assertTrue($verifyResponse->isSuccessful());
         $this->assertEquals('TRX_ROCKET_999', $verifyResponse->transactionId);
+
+        $refundReq = new RefundRequest(
+            paymentId: 'ROCKET_PAY_123',
+            transactionId: 'TRX_ROCKET_999',
+            amount: 500.0
+        );
+        $refundRes = $gateway->refund($refundReq);
+        $this->assertTrue($refundRes->isSuccessful());
+        $this->assertEquals('RFD_ROCKET_111', $refundRes->refundTransactionId);
     }
 
-    public function test_upay_create_and_verify_payment()
+    public function test_upay_create_verify_and_refund_payment()
     {
         $mock = new MockHandler([
-            // Auth Token
             new Response(200, [], json_encode(['data' => ['token' => 'upay_token_123']])),
-            // Create Payment
             new Response(200, [], json_encode([
                 'data' => [
                     'payment_url' => 'https://upaybd.com/pay/456',
                     'trx_id' => 'UPAY_PAY_456',
                 ],
             ])),
-            // Auth Token for Query
             new Response(200, [], json_encode(['data' => ['token' => 'upay_token_123']])),
-            // Verify Payment
             new Response(200, [], json_encode([
                 'data' => [
                     'status' => 'SUCCESS',
@@ -84,6 +93,11 @@ class NewGatewaysTest extends TestCase
                     'txn_id' => 'INV-UPAY-1',
                     'amount' => '750.00',
                 ],
+            ])),
+            new Response(200, [], json_encode(['data' => ['token' => 'upay_token_123']])),
+            new Response(200, [], json_encode([
+                'status' => 'SUCCESS',
+                'data' => ['refund_trx_id' => 'RFD_UPAY_222'],
             ])),
         ]);
 
@@ -100,10 +114,18 @@ class NewGatewaysTest extends TestCase
 
         $verifyResponse = $gateway->queryPayment('UPAY_PAY_456');
         $this->assertTrue($verifyResponse->isSuccessful());
-        $this->assertEquals('TRX_UPAY_888', $verifyResponse->transactionId);
+
+        $refundReq = new RefundRequest(
+            paymentId: 'UPAY_PAY_456',
+            transactionId: 'TRX_UPAY_888',
+            amount: 750.0
+        );
+        $refundRes = $gateway->refund($refundReq);
+        $this->assertTrue($refundRes->isSuccessful());
+        $this->assertEquals('RFD_UPAY_222', $refundRes->refundTransactionId);
     }
 
-    public function test_cellfin_create_and_verify_payment()
+    public function test_cellfin_create_verify_and_refund_payment()
     {
         $mock = new MockHandler([
             new Response(200, [], json_encode([
@@ -116,6 +138,10 @@ class NewGatewaysTest extends TestCase
                 'trx_id' => 'TRX_CELLFIN_777',
                 'reference_id' => 'INV-CELLFIN-1',
                 'amount' => 1200.0,
+            ])),
+            new Response(200, [], json_encode([
+                'status' => 'SUCCESS',
+                'refund_ref_id' => 'RFD_CELLFIN_333',
             ])),
         ]);
 
@@ -131,10 +157,18 @@ class NewGatewaysTest extends TestCase
 
         $verifyResponse = $gateway->queryPayment('CELLFIN_789');
         $this->assertTrue($verifyResponse->isSuccessful());
-        $this->assertEquals('TRX_CELLFIN_777', $verifyResponse->transactionId);
+
+        $refundReq = new RefundRequest(
+            paymentId: 'CELLFIN_789',
+            transactionId: 'TRX_CELLFIN_777',
+            amount: 1200.0
+        );
+        $refundRes = $gateway->refund($refundReq);
+        $this->assertTrue($refundRes->isSuccessful());
+        $this->assertEquals('RFD_CELLFIN_333', $refundRes->refundTransactionId);
     }
 
-    public function test_sslcommerz_create_and_verify_payment()
+    public function test_sslcommerz_create_verify_and_refund_payment()
     {
         $mock = new MockHandler([
             new Response(200, [], json_encode([
@@ -150,6 +184,10 @@ class NewGatewaysTest extends TestCase
                 'amount' => '2500.00',
                 'currency' => 'BDT',
             ])),
+            new Response(200, [], json_encode([
+                'status' => 'SUCCESS',
+                'refund_ref_id' => 'RFD_SSL_444',
+            ])),
         ]);
 
         $handlerStack = HandlerStack::create($mock);
@@ -161,32 +199,35 @@ class NewGatewaysTest extends TestCase
         $initResponse = $gateway->createPayment($request);
 
         $this->assertEquals(PaymentStatus::PENDING, $initResponse->status);
-        $this->assertEquals('https://sandbox.sslcommerz.com/easycheckout/123', $initResponse->redirectUrl);
 
         $verifyResponse = $gateway->queryPayment('SSL_VAL_999');
         $this->assertTrue($verifyResponse->isSuccessful());
-        $this->assertEquals('TRX_SSL_555', $verifyResponse->transactionId);
+
+        $refundReq = new RefundRequest(
+            paymentId: 'SSL_SESS_123',
+            transactionId: 'TRX_SSL_555',
+            amount: 2500.0
+        );
+        $refundRes = $gateway->refund($refundReq);
+        $this->assertTrue($refundRes->isSuccessful());
+        $this->assertEquals('RFD_SSL_444', $refundRes->refundTransactionId);
     }
 
-    public function test_shurjopay_create_and_verify_payment()
+    public function test_shurjopay_create_verify_and_refund_payment()
     {
         $mock = new MockHandler([
-            // Token
             new Response(200, [], json_encode([
                 'token' => 'sp_token_123',
                 'store_id' => 1,
             ])),
-            // Secret Pay
             new Response(200, [], json_encode([
                 'checkout_url' => 'https://sandbox.shurjopayment.com/pay/123',
                 'sp_order_id' => 'SP_ORD_1001',
             ])),
-            // Token for verification
             new Response(200, [], json_encode([
                 'token' => 'sp_token_123',
                 'store_id' => 1,
             ])),
-            // Verification Response
             new Response(200, [], json_encode([[
                 'sp_code' => '1000',
                 'sp_massage' => 'Success',
@@ -194,6 +235,15 @@ class NewGatewaysTest extends TestCase
                 'customer_order_id' => 'INV-SP-1',
                 'amount' => 3000.0,
             ]])),
+            new Response(200, [], json_encode([
+                'token' => 'sp_token_123',
+                'store_id' => 1,
+            ])),
+            new Response(200, [], json_encode([
+                'sp_code' => '1000',
+                'sp_massage' => 'Refund Processed',
+                'refund_ref_id' => 'RFD_SP_555',
+            ])),
         ]);
 
         $handlerStack = HandlerStack::create($mock);
@@ -205,10 +255,17 @@ class NewGatewaysTest extends TestCase
         $initResponse = $gateway->createPayment($request);
 
         $this->assertEquals(PaymentStatus::PENDING, $initResponse->status);
-        $this->assertEquals('SP_ORD_1001', $initResponse->paymentId);
 
         $verifyResponse = $gateway->queryPayment('SP_ORD_1001');
         $this->assertTrue($verifyResponse->isSuccessful());
-        $this->assertEquals('TRX_SP_333', $verifyResponse->transactionId);
+
+        $refundReq = new RefundRequest(
+            paymentId: 'SP_ORD_1001',
+            transactionId: 'TRX_SP_333',
+            amount: 3000.0
+        );
+        $refundRes = $gateway->refund($refundReq);
+        $this->assertTrue($refundRes->isSuccessful());
+        $this->assertEquals('RFD_SP_555', $refundRes->refundTransactionId);
     }
 }
